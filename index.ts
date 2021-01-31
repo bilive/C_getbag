@@ -1,4 +1,3 @@
-import { Options as requestOptions } from 'request'
 import Plugin, { tools, AppClient } from '../../plugin'
 
 class Bag extends Plugin {
@@ -7,7 +6,7 @@ class Bag extends Plugin {
   }
   public name = '包裹道具'
   public description = '领取直播包裹道具'
-  public version = '0.0.1'
+  public version = '0.0.2'
   public author = 'lzghzr'
   /**
    * 任务表
@@ -46,12 +45,12 @@ class Bag extends Plugin {
   private _getBag(users: Map<string, User>) {
     users.forEach(async (user, uid) => {
       if (this._getBagList.get(uid) || !user.userData['getBag']) return
-      const getBag: requestOptions = {
-        uri: `https://api.live.bilibili.com/AppBag/getSendGift?${AppClient.signQueryBase(user.tokenQuery)}`,
-        json: true,
+      const getBag: XHRoptions = {
+        url: `https://api.live.bilibili.com/gift/v2/live/m_receive_daily_bag?${AppClient.signQueryBase(user.tokenQuery)}`,
+        responseType: 'json',
         headers: user.headers
       }
-      const getBagGift = await tools.XHR<{ code: number }>(getBag, 'Android')
+      const getBagGift = await tools.XHR<dailyBag>(getBag, 'Android')
       if (getBagGift !== undefined && getBagGift.response.statusCode === 200) {
         if (getBagGift.body.code === 0) {
           this._getBagList.set(uid, true)
@@ -62,6 +61,31 @@ class Bag extends Plugin {
       else tools.Log(user.nickname, '包裹道具', '网络错误')
     })
   }
+}
+/**
+ * 每日包裹礼物
+ *
+ * @interface dailyBag
+ */
+interface dailyBag {
+  code: number
+  msg: string
+  message: string
+  data: dailyBagDatum[] | []
+}
+interface dailyBagDatum {
+  type: number
+  taskimg: string
+  gift_list: dailyBagDatumGiftList[]
+  bag_name: string
+  bag_source: string
+  giftTypeName: string
+}
+interface dailyBagDatumGiftList {
+  gift_id: string
+  gift_num: number
+  expireat: string
+  img: string
 }
 
 export default new Bag()
